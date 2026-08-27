@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metrônomo Retro Profissional WebAudio</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0a0c0e;
+            color: #00ff66;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #121619;
+            border: 2px solid #00ff66;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 520px;
+            width: 100%;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.15);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            color: #00ff66;
+            text-shadow: 0 0 12px rgba(0, 255, 102, 0.4);
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: #00aa44;
+            letter-spacing: 1px;
+            margin-top: 5px;
+        }
+
+        .bpm-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .btn-bpm {
+            background: #000;
+            color: #00ff66;
+            border: 1px solid #00ff66;
+            font-size: 1.2rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-bpm:hover {
+            background: #00ff66;
+            color: #000;
+        }
+
+        .slider-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            max-width: 380px;
+            height: 8px;
+            background: #1a3322;
+            border-radius: 4px;
+            outline: none;
+            border: 1px solid #00ff66;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #00ff66;
+            cursor: pointer;
+            box-shadow: 0 0 10px #00ff66;
+        }
+
+        /* Sequenciador de LEDs por Tempo */
+        .led-panel {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 25px;
+            min-height: 40px;
+            align-items: center;
+        }
+
+        .led {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background-color: #0a1f12;
+            border: 2px solid #00aa44;
+            transition: all 0.05s ease;
+        }
+
+        .led.active-accent {
+            background-color: #00ff66;
+            box-shadow: 0 0 18px #00ff66;
+            border-color: #ffffff;
+        }
+
+        .led.active-normal {
+            background-color: #00cc55;
+            box-shadow: 0 0 12px #00cc55;
+        }
+
+        .led.active-sub {
+            background-color: #005522;
+            box-shadow: 0 0 6px #005522;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #00cc55;
+        }
+
+        select, button {
+            background-color: #000;
+            color: #00ff66;
+            border: 1.5px solid #00ff66;
+            padding: 10px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        select:focus, button:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 255, 102, 0.6);
+        }
+
+        button:hover {
+            background-color: #00ff66;
+            color: #000;
+        }
+
+        .trainer-box {
+            background: #000;
+            border: 1px dashed #00ff66;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .trainer-title {
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #00ff66;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .trainer-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .trainer-inputs input[type="number"] {
+            width: 60px;
+            background: #0a1f12;
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            padding: 5px;
+            font-family: inherit;
+            text-align: center;
+            border-radius: 4px;
+        }
+
+        .btn-main-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-main-group button {
+            flex: 1;
+            padding: 14px;
+            font-size: 1rem;
+        }
+
+        .shortcuts-info {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #008833;
+            border-top: 1px solid #1a3322;
+            padding-top: 12px;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #00ff66;
+            cursor: pointer;
+        }
+
+        .checkbox-container input {
+            accent-color: #00ff66;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1 id="bpm-display">120 BPM</h1>
+            <div class="subtitle">PRECISION WEBAUDIO ENGINE • PRO SPEC</div>
+        </header>
+
+        <div class="bpm-container">
+            <button class="btn-bpm" id="bpm-minus">-</button>
+            <div class="slider-container" style="margin-bottom:0; flex-grow:1;">
+                <input type="range" min="40" max="240" value="120" id="bpm" />
+            </div>
+            <button class="btn-bpm" id="bpm-plus">+</button>
+        </div>
+
+        <!-- Painel LED dos Tempos -->
+        <div class="led-panel" id="led-panel">
+            <!-- Gerado Dinamicamente via JS -->
+        </div>
+
+        <div class="controls-grid">
+            <div class="control-group">
+                <label for="time-signature">Compasso</label>
+                <select id="time-signature">
+                    <option value="4">4/4</option>
+                    <option value="3">3/4</option>
+                    <option value="2">2/4</option>
+                    <option value="5">5/4</option>
+                    <option value="6">6/8</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="subdivision">Subdivisão</label>
+                <select id="subdivision">
+                    <option value="1">Semínimas (1x)</option>
+                    <option value="2">Colcheias (2x)</option>
+                    <option value="3">Tercinas (3x)</option>
+                    <option value="4">Semicolcheias (4x)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="controls-grid">
+            <div class="control-group">
+                <label for="sound-timbre">Timbre do Clique</label>
+                <select id="sound-timbre">
+                    <option value="triangle">Triangular (Estalo / Moderno)</option>
+                    <option value="sine">Senoidal (Suave / Orgânico)</option>
+                    <option value="square">Quadrada (Digital Vintage)</option>
+                    <option value="sawtooth">Dente de Serra (Penetrante)</option>
+                </select>
+            </div>
+
+            <div class="control-group" style="justify-content: flex-end;">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="mute-trainer">
+                    Silenciar a cada 4º Compasso
+                </label>
+            </div>
+        </div>
+
+        <!-- Treinador de Aceleração -->
+        <div class="trainer-box">
+            <div class="trainer-title">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="speed-trainer-enable">
+                    Treinador de Aceleração Automática
+                </label>
+            </div>
+            <div class="trainer-inputs">
+                <span>+</span>
+                <input type="number" id="bpm-increment" value="5" min="1" max="20">
+                <span>BPM a cada</span>
+                <input type="number" id="measure-interval" value="4" min="1" max="32">
+                <span>compassos</span>
+            </div>
+        </div>
+
+        <div class="btn-main-group">
+            <button id="play">PLAY [Enter]</button>
+            <button id="tap-btn">TAP TEMPO [Espaço]</button>
+        </div>
+
+        <div class="shortcuts-info">
+            Teclado: [Enter] Iniciar/Parar | [Espaço] Tap | [← / →] Ajustar BPM
+        </div>
+    </div>
+
+    <script>
+        // Elementos da DOM
+        const bpmInput = document.getElementById('bpm');
+        const bpmDisplay = document.getElementById('bpm-display');
+        const bpmPlus = document.getElementById('bpm-plus');
+        const bpmMinus = document.getElementById('bpm-minus');
+        const playBtn = document.getElementById('play');
+        const tapBtn = document.getElementById('tap-btn');
+        const timeSigSelect = document.getElementById('time-signature');
+        const subSelect = document.getElementById('subdivision');
+        const timbreSelect = document.getElementById('sound-timbre');
+        const ledPanel = document.getElementById('led-panel');
+        const speedTrainerEnable = document.getElementById('speed-trainer-enable');
+        const bpmIncrementInput = document.getElementById('bpm-increment');
+        const measureIntervalInput = document.getElementById('measure-interval');
+        const muteTrainerInput = document.getElementById('mute-trainer');
+
+        // Estado do Aplicativo
+        let currentBpm = 120;
+        let beatsPerMeasure = 4;
+        let subdivision = 1;
+        let soundTimbre = 'triangle';
+        let isPlaying = false;
+
+        // Controle do Lookahead Scheduler (Precisão Profissional)
+        let audioCtx = null;
+        let nextNoteTime = 0.0;
+        let currentSubBeat = 0;
+        let currentMainBeat = 0;
+        let measureCount = 0;
+        let timerID = null;
+        const lookahead = 25.0; // Frequência do loop de agendamento (ms)
+        const scheduleAheadTime = 0.1; // Janela de áudio pré-agendada (segundos)
+
+        // Estado do Tap Tempo
+        let tapTimes = [];
+        let lastTapTime = 0;
+
+        // Renderização Inicial dos LEDs
+        renderLEDs();
+
+        function renderLEDs() {
+            ledPanel.innerHTML = '';
+            for (let i = 0; i < beatsPerMeasure; i++) {
+                const led = document.createElement('div');
+                led.className = 'led';
+                led.id = `led-${i}`;
+                ledPanel.appendChild(led);
+            }
+        }
+
+        // --- MOTOR DE ÁUDIO DE ALTA PRECISÃO (Lookahead Scheduler) ---
+        function nextNote() {
+            const secondsPerBeat = 60.0 / currentBpm;
+            const secondsPerSubdivision = secondsPerBeat / subdivision;
+            
+            nextNoteTime += secondsPerSubdivision;
+
+            currentSubBeat++;
+            if (currentSubBeat % subdivision === 0) {
+                currentMainBeat++;
+                if (currentMainBeat >= beatsPerMeasure) {
+                    currentMainBeat = 0;
+                    measureCount++;
+                    checkSpeedTrainer();
+                }
+            }
+        }
+
+        function scheduleNote(beatNumber, subNumber, time) {
+            const subIndex = subNumber % subdivision;
+            const isFirstBeatOfMeasure = (beatNumber === 0 && subIndex === 0);
+            const isMainBeat = (subIndex === 0);
+
+            // Mute Trainer: Silencia no 4º compasso do ciclo se ativado
+            const isMuted = muteTrainerInput.checked && (measureCount % 4 === 3);
+
+            if (!isMuted) {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = soundTimbre;
+
+                let freq = 800;
+                let volume = 0.6;
+
+                if (isFirstBeatOfMeasure) {
+                    freq = 2000;
+                    volume = 2.2;
+                } else if (isMainBeat) {
+                    freq = 1200;
+                    volume = 1.6;
+                }
+
+                osc.frequency.setValueAtTime(freq, time);
+                gain.gain.setValueAtTime(volume, time);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(time);
+                osc.stop(time + 0.05);
+            }
+
+            // Agendamento Visual Sincronizado
+            const drawTime = Math.max(0, (time - audioCtx.currentTime) * 1000);
+            setTimeout(() => {
+                updateVisuals(beatNumber, isFirstBeatOfMeasure, isMainBeat);
+            }, drawTime);
+        }
+
+        function scheduler() {
+            while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
+                scheduleNote(currentMainBeat, currentSubBeat, nextNoteTime);
+                nextNote();
+            }
+            timerID = setTimeout(scheduler, lookahead);
+        }
+
+        function updateVisuals(beat, isFirst, isMain) {
+            // Apaga todos os LEDs
+            const leds = document.querySelectorAll('.led');
+            leds.forEach(led => led.className = 'led');
+
+            // Acende o LED do tempo atual
+            const currentLed = document.getElementById(`led-${beat}`);
+            if (currentLed) {
+                if (isFirst) {
+                    currentLed.className = 'led active-accent';
+                } else if (isMain) {
+                    currentLed.className = 'led active-normal';
+                } else {
+                    currentLed.className = 'led active-sub';
+                }
+            }
+        }
+
+        function checkSpeedTrainer() {
+            if (speedTrainerEnable.checked && measureCount > 0) {
+                const interval = parseInt(measureIntervalInput.value) || 4;
+                const increment = parseInt(bpmIncrementInput.value) || 5;
+
+                if (measureCount % interval === 0 && currentMainBeat === 0) {
+                    let newBpm = currentBpm + increment;
+                    newBpm = Math.min(newBpm, 240);
+                    updateBPM(newBpm);
+                }
+            }
+        }
+
+        function updateBPM(val) {
+            currentBpm = Math.min(Math.max(parseInt(val), 40), 240);
+            bpmInput.value = currentBpm;
+            bpmDisplay.innerText = `${currentBpm} BPM`;
+        }
+
+        function startMetronome() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            isPlaying = true;
+            playBtn.innerText = 'STOP [Enter]';
+            currentMainBeat = 0;
+            currentSubBeat = 0;
+            measureCount = 0;
+            nextNoteTime = audioCtx.currentTime;
+            scheduler();
+        }
+
+        function stopMetronome() {
+            isPlaying = false;
+            playBtn.innerText = 'PLAY [Enter]';
+            clearTimeout(timerID);
+            const leds = document.querySelectorAll('.led');
+            leds.forEach(led => led.className = 'led');
+        }
+
+        // --- EVENTOS DE INTERFACE ---
+        bpmInput.addEventListener('input', function() {
+            updateBPM(this.value);
+        });
+
+        bpmPlus.addEventListener('click', () => updateBPM(currentBpm + 1));
+        bpmMinus.addEventListener('click', () => updateBPM(currentBpm - 1));
+
+        timeSigSelect.addEventListener('change', function() {
+            beatsPerMeasure = parseInt(this.value);
+            renderLEDs();
+            if (isPlaying) {
+                stopMetronome();
+                startMetronome();
+            }
+        });
+
+        subSelect.addEventListener('change', function() {
+            subdivision = parseInt(this.value);
+            if (isPlaying) {
+                stopMetronome();
+                startMetronome();
+            }
+        });
+
+        timbreSelect.addEventListener('change', function() {
+            soundTimbre = this.value;
+        });
+
+        playBtn.addEventListener('click', function() {
+            if (isPlaying) {
+                stopMetronome();
+            } else {
+                startMetronome();
+            }
+        });
+
+        // Tap Tempo
+        tapBtn.addEventListener('click', function() {
+            const currentTime = Date.now();
+            if (lastTapTime && (currentTime - lastTapTime > 2000)) {
+                tapTimes = [];
+            }
+
+            if (lastTapTime) {
+                const interval = currentTime - lastTapTime;
+                tapTimes.push(interval);
+                if (tapTimes.length > 6) tapTimes.shift();
+
+                const averageInterval = tapTimes.reduce((a, b) => a + b) / tapTimes.length;
+                const calculatedBpm = Math.round(60000 / averageInterval);
+                updateBPM(calculatedBpm);
+            }
+            lastTapTime = currentTime;
+        });
+
+        // Atalhos de Teclado
+        window.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' || e.key === ' ') {
+                e.preventDefault();
+                tapBtn.click();
+            } else if (e.code === 'Enter' || e.key === 'Enter') {
+                e.preventDefault();
+                playBtn.click();
+            } else if (e.key === 'ArrowRight') {
+                updateBPM(currentBpm + 1);
+            } else if (e.key === 'ArrowLeft') {
+                updateBPM(currentBpm - 1);
+            }
+        });
+    </script>
+</body>
+</html>
