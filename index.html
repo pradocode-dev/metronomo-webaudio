@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Metrônomo Retro Profissional WebAudio</title>
     <style>
+        /* APLIQUE AQUI NO INÍCIO DO SEU CSS */
+        body, button, input {
+            touch-action: manipulation;
+        }
         * {
             box-sizing: border-box;
             margin: 0;
@@ -64,12 +68,15 @@
             background: #000;
             color: #00ff66;
             border: 1px solid #00ff66;
-            font-size: 1.2rem;
-            width: 40px;
-            height: 40px;
+            font-size: 1.2rem; /* Mantém acima de 16px para evitar auto-zoom no iOS */
+            width: 44px;       /* Área de toque maior para mobile */
+            height: 44px;
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s;
+            user-select: none; /* Impede a seleção de texto ao clicar rápido */
+            -webkit-user-select: none;
+            touch-action: manipulation; /* Garante clique rápido sem zoom */
         }
 
         .btn-bpm:hover {
